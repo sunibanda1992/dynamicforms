@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.mvnw.cmd clean install:*)",
+      "Bash(mvnw.cmd clean install:*)",
+      "Bash($env:JAVA_HOME = \"C:\\Program Files\\Java\\jdk-21\")",
+      "Bash(echo:*)",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Java/jdk-21\")",
+      "Bash(\"$JAVA_HOME/bin/java\" -version)",
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(PATH=\"$JAVA_HOME/bin:$PATH\")",
+      "Bash(./mvnw clean install:*)",
+      "Bash(chmod:*)",
+      "Bash(curl:*)",
+      "Bash(./mvnw spring-boot:run:*)",
+      "Bash(./mvnw clean package:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill //F //PID 25892)",
+      "Bash(taskkill //F //PID 19604)",
+      "Bash(taskkill:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
