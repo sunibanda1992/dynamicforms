@@ -103,11 +103,23 @@ GET /api/forms/contact
 ```
 Returns the contact form configuration.
 
+### Get Conditional Form
+```
+GET /api/forms/conditional
+```
+Returns a form demonstrating conditional field visibility based on field dependencies.
+
+### Get Cross-Field Validation Form
+```
+GET /api/forms/cross-validation
+```
+Returns a form demonstrating cross-field validations (password matching, date ranges, etc.).
+
 ### Get Form by ID
 ```
 GET /api/forms/{formId}
 ```
-Returns a specific form configuration by ID (e.g., "registration" or "contact").
+Returns a specific form configuration by ID (e.g., "registration", "contact", "conditional", or "cross-validation").
 
 ## Schema Definition API Endpoints
 
@@ -236,6 +248,233 @@ Each field can have multiple validation rules:
 
 Each validation includes an `errorMessage` that should be displayed when the validation fails.
 
+## Conditional Fields
+
+Fields can have conditional visibility based on the values of other fields. This is useful for creating dynamic forms where certain fields appear or disappear based on user selections.
+
+### Condition Structure
+
+Each field can have a `conditions` array and a `hidden` boolean property:
+
+```json
+{
+  "name": "companyName",
+  "label": "Company Name",
+  "controlType": "input",
+  "inputType": "text",
+  "hidden": true,
+  "conditions": [
+    {
+      "dependsOn": "employmentStatus",
+      "operator": "in",
+      "values": ["employed", "self-employed"],
+      "action": "show"
+    }
+  ]
+}
+```
+
+### Supported Operators
+
+- **equals**: Field value must equal a specific value
+  ```json
+  {
+    "dependsOn": "hasExperience",
+    "operator": "equals",
+    "value": true,
+    "action": "show"
+  }
+  ```
+
+- **in**: Field value must be in a list of values
+  ```json
+  {
+    "dependsOn": "contactMethod",
+    "operator": "in",
+    "values": ["phone", "sms"],
+    "action": "show"
+  }
+  ```
+
+### Use Cases
+
+1. **Select-driven visibility**: Show company name field only when employment status is "employed" or "self-employed"
+2. **Checkbox-driven visibility**: Show years of experience field only when "Has Experience" checkbox is checked
+3. **Radio-driven visibility**: Show phone number field only when contact method is "phone" or "sms"
+
+### Example Response
+
+```json
+{
+  "name": "phoneNumber",
+  "label": "Phone Number",
+  "controlType": "input",
+  "inputType": "tel",
+  "hidden": true,
+  "conditions": [
+    {
+      "dependsOn": "contactMethod",
+      "operator": "in",
+      "values": ["phone", "sms"],
+      "action": "show"
+    }
+  ],
+  "validations": [
+    {
+      "name": "required",
+      "value": true,
+      "errorMessage": "Phone number is required"
+    }
+  ]
+}
+```
+
+To see a complete example, call `GET /api/forms/conditional`.
+
+## Cross-Field Validations
+
+Cross-field validations allow you to validate relationships between multiple fields in a form. This is essential for scenarios like password confirmation, date range validation, budget ranges, and conditionally required fields.
+
+### Structure
+
+Forms can include a `crossFieldValidations` array at the form level:
+
+```json
+{
+  "formId": "cross-field-validation-form",
+  "fields": [...],
+  "crossFieldValidations": [
+    {
+      "validationType": "fieldMatch",
+      "fields": ["password", "confirmPassword"],
+      "operator": "equals",
+      "errorMessage": "Passwords do not match",
+      "errorField": "confirmPassword"
+    }
+  ]
+}
+```
+
+### Validation Types
+
+#### 1. Field Match (fieldMatch)
+Validates that two fields have identical values (e.g., password confirmation).
+
+```json
+{
+  "validationType": "fieldMatch",
+  "fields": ["password", "confirmPassword"],
+  "operator": "equals",
+  "errorMessage": "Passwords do not match",
+  "errorField": "confirmPassword"
+}
+```
+
+#### 2. Date Range (dateRange)
+Validates that dates are in the correct order.
+
+```json
+{
+  "validationType": "dateRange",
+  "fields": ["startDate", "endDate"],
+  "operator": "lessThan",
+  "errorMessage": "End date must be after start date",
+  "errorField": "endDate"
+}
+```
+
+#### 3. Numeric Comparison (numericComparison)
+Validates numeric relationships between fields.
+
+Supported operators: `lessThan`, `lessThanOrEqual`, `greaterThan`, `greaterThanOrEqual`
+
+```json
+{
+  "validationType": "numericComparison",
+  "fields": ["minBudget", "maxBudget"],
+  "operator": "lessThanOrEqual",
+  "errorMessage": "Maximum budget must be greater than or equal to minimum budget",
+  "errorField": "maxBudget"
+}
+```
+
+#### 4. Conditional Required (conditionalRequired)
+Makes a field required based on another field's value.
+
+```json
+{
+  "validationType": "conditionalRequired",
+  "fields": ["agreementType", "customAgreementDetails"],
+  "operator": "requiredIf",
+  "errorMessage": "Custom agreement details are required when agreement type is 'Custom'",
+  "errorField": "customAgreementDetails"
+}
+```
+
+### Validation Endpoint
+
+To validate a form submission with cross-field validations:
+
+```
+POST /api/validate
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "formId": "cross-validation",
+  "data": {
+    "password": "MyPassword123",
+    "confirmPassword": "MyPassword123",
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31",
+    "minBudget": 1000,
+    "maxBudget": 5000,
+    "agreementType": "custom",
+    "customAgreementDetails": "Special terms apply"
+  }
+}
+```
+
+**Response (Success):**
+```json
+{
+  "valid": true,
+  "errors": [],
+  "message": "Form is valid"
+}
+```
+
+**Response (With Errors):**
+```json
+{
+  "valid": false,
+  "errors": [
+    {
+      "field": "confirmPassword",
+      "message": "Passwords do not match",
+      "validationType": "cross-field"
+    },
+    {
+      "field": "endDate",
+      "message": "End date must be after start date",
+      "validationType": "cross-field"
+    }
+  ],
+  "message": "Form validation failed"
+}
+```
+
+### Use Cases
+
+1. **Password Confirmation**: Ensure password and confirm password fields match
+2. **Date Ranges**: Validate start date is before end date
+3. **Numeric Ranges**: Ensure min/max values are in correct order
+4. **Conditional Requirements**: Make fields required based on other field values
+
+To see a complete example, call `GET /api/forms/cross-validation`.
+
 ## CORS Configuration
 
 The API is configured to accept requests from `http://localhost:4200` (default Angular development server).
@@ -257,6 +496,7 @@ export interface FormConfig {
   fields: FormField[];
   submitButtonText: string;
   cancelButtonText: string;
+  crossFieldValidations?: CrossFieldValidation[];
 }
 
 export interface FormField {
@@ -270,6 +510,16 @@ export interface FormField {
   options?: SelectOption[];
   attributes?: Record<string, any>;
   order?: number;
+  conditions?: FieldCondition[];
+  hidden?: boolean;
+}
+
+export interface FieldCondition {
+  dependsOn: string;
+  operator: string;
+  value?: any;
+  values?: any[];
+  action: string;
 }
 
 export interface ValidationRule {
@@ -278,14 +528,44 @@ export interface ValidationRule {
   errorMessage: string;
 }
 
+export interface CrossFieldValidation {
+  validationType: string;
+  fields: string[];
+  operator: string;
+  errorMessage: string;
+  errorField?: string;
+}
+
+export interface FormSubmission {
+  formId: string;
+  data: Record<string, any>;
+}
+
+export interface ValidationError {
+  field: string;
+  message: string;
+  validationType: string;
+}
+
+export interface ValidationResponse {
+  valid: boolean;
+  errors: ValidationError[];
+  message: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FormConfigService {
   private apiUrl = 'http://localhost:8080/api/forms';
+  private validateUrl = 'http://localhost:8080/api/validate';
 
   constructor(private http: HttpClient) {}
 
   getFormConfig(formId: string): Observable<FormConfig> {
     return this.http.get<FormConfig>(`${this.apiUrl}/${formId}`);
+  }
+
+  validateForm(submission: FormSubmission): Observable<ValidationResponse> {
+    return this.http.post<ValidationResponse>(this.validateUrl, submission);
   }
 }
 ```

@@ -24,4 +24,6 @@ public class FormField {
     private Map<String, Object> attributes;
     private Integer order;
     private String cssClass;
+    private List<FieldCondition> conditions;
+    private Boolean hidden;
 }

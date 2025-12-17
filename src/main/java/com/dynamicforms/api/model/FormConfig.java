@@ -18,4 +18,5 @@ public class FormConfig {
     private List<FormField> fields;
     private String submitButtonText;
     private String cancelButtonText;
+    private List<CrossFieldValidation> crossFieldValidations;
 }

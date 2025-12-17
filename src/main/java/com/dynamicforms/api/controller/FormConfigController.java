@@ -28,6 +28,16 @@ public class FormConfigController {
         return ResponseEntity.ok(formConfigService.getContactFormConfig());
     }
 
+    @GetMapping("/conditional")
+    public ResponseEntity<FormConfig> getConditionalForm() {
+        return ResponseEntity.ok(formConfigService.getConditionalFormConfig());
+    }
+
+    @GetMapping("/cross-validation")
+    public ResponseEntity<FormConfig> getCrossFieldValidationForm() {
+        return ResponseEntity.ok(formConfigService.getCrossFieldValidationFormConfig());
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, FormConfig>> getAllForms() {
         return ResponseEntity.ok(formConfigService.getAllForms());
